@@ -10,9 +10,10 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i)
 interface DayViewProps {
   events: CalendarEvent[]
   onTimeClick: (date: Date) => void
+  onEventClick?: (event: CalendarEvent) => void
 }
 
-export function DayView({ events, onTimeClick }: DayViewProps) {
+export function DayView({ events, onTimeClick, onEventClick }: DayViewProps) {
   const { currentDate } = useCalendarStore()
 
   const dayEvents = events.filter(
@@ -93,6 +94,7 @@ export function DayView({ events, onTimeClick }: DayViewProps) {
               return (
                 <div
                   key={event.id}
+                  onClick={() => onEventClick?.(event)}
                   className="absolute left-2 right-2 rounded-xl px-3 py-2 pointer-events-auto cursor-pointer"
                   style={{
                     top: `${getTopPercent(event)}%`,

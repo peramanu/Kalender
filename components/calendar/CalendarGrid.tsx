@@ -118,7 +118,6 @@ export function CalendarGrid({ onEventClick }: CalendarGridProps) {
                             backgroundColor: `${eventColor}30`,
                             borderLeft: `2px solid ${eventColor}`,
                           }}
-                          onClick={(e) => e.stopPropagation()}
                         >
                           {event.title}
                         </div>

@@ -14,9 +14,10 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i)
 interface WeekViewProps {
   events: CalendarEvent[]
   onDayClick: (date: Date) => void
+  onEventClick?: (event: CalendarEvent) => void
 }
 
-export function WeekView({ events, onDayClick }: WeekViewProps) {
+export function WeekView({ events, onDayClick, onEventClick }: WeekViewProps) {
   const { currentDate } = useCalendarStore()
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
   const days = eachDayOfInterval({ start: weekStart, end: endOfWeek(currentDate, { weekStartsOn: 1 }) })
@@ -120,6 +121,7 @@ export function WeekView({ events, onDayClick }: WeekViewProps) {
                 return (
                   <div
                     key={event.id}
+                    onClick={() => onEventClick?.(event)}
                     className="absolute left-0.5 right-0.5 rounded-lg px-1.5 py-1 pointer-events-auto cursor-pointer overflow-hidden"
                     style={{
                       top: `${getTopPercent(event)}%`,
