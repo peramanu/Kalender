@@ -7,7 +7,12 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 const SupabaseContext = createContext<SupabaseClient | undefined>(undefined)
 
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  const [supabase] = useState(() => createClient())
+  const [supabase] = useState(() => {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return null as unknown as SupabaseClient
+    }
+    return createClient()
+  })
 
   return (
     <SupabaseContext.Provider value={supabase}>
