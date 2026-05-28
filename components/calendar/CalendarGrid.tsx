@@ -8,12 +8,16 @@ import {
 } from 'date-fns'
 import { de } from 'date-fns/locale'
 import { useCalendarStore } from '@/store/calendarStore'
-import { useEvents } from '@/hooks/useEvents'
+import { useEvents, type CalendarEvent } from '@/hooks/useEvents'
 import { EventModal } from './EventModal'
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
-export function CalendarGrid() {
+interface CalendarGridProps {
+  onEventClick?: (event: CalendarEvent) => void
+}
+
+export function CalendarGrid({ onEventClick }: CalendarGridProps) {
   const { currentDate, goToNext, goToPrev, setSelectedDate } = useCalendarStore()
   const { events, loading, refetch } = useEvents(currentDate)
   const [modalOpen, setModalOpen] = useState(false)
@@ -93,11 +97,10 @@ export function CalendarGrid() {
                 >
                   {/* Tag-Nummer */}
                   <div className="flex justify-center mb-1">
-                    <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${
-                      isDayToday
-                        ? 'bg-indigo-500 text-white font-bold'
-                        : 'text-white/80'
-                    }`}>
+                    <span
+                      className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full ${isDayToday ? 'text-white font-bold' : 'text-white/80'}`}
+                      style={isDayToday ? { backgroundColor: 'var(--accent)' } : {}}
+                    >
                       {format(day, 'd')}
                     </span>
                   </div>
@@ -109,6 +112,7 @@ export function CalendarGrid() {
                       return (
                         <div
                           key={event.id}
+                          onClick={(e) => { e.stopPropagation(); onEventClick?.(event) }}
                           className="text-[10px] md:text-xs font-medium px-1.5 py-0.5 rounded-md text-white truncate"
                           style={{
                             backgroundColor: `${eventColor}30`,

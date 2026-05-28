@@ -8,18 +8,20 @@ import { WeekView } from '@/components/calendar/WeekView'
 import { DayView } from '@/components/calendar/DayView'
 import { AgendaView } from '@/components/calendar/AgendaView'
 import { EventModal } from '@/components/calendar/EventModal'
+import { EventDetailModal } from '@/components/calendar/EventDetailModal'
 import { useCalendarStore } from '@/store/calendarStore'
-import { useEvents } from '@/hooks/useEvents'
+import { useEvents, type CalendarEvent } from '@/hooks/useEvents'
 
 export default function CalendarPage() {
   const { view, currentDate } = useCalendarStore()
   const { events, refetch } = useEvents(currentDate)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [modalDate, setModalDate] = useState<Date>(new Date())
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createDate, setCreateDate] = useState<Date>(new Date())
+  const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null)
 
-  const openModal = (date: Date) => {
-    setModalDate(date)
-    setModalOpen(true)
+  const openCreate = (date: Date) => {
+    setCreateDate(date)
+    setCreateOpen(true)
   }
 
   return (
@@ -35,18 +37,31 @@ export default function CalendarPage() {
           transition={{ duration: 0.18 }}
           className="flex-1 flex flex-col min-h-0"
         >
-          {view === 'month' && <CalendarGrid />}
-          {view === 'week' && <WeekView events={events} onDayClick={openModal} />}
-          {view === 'day' && <DayView events={events} onTimeClick={openModal} />}
-          {view === 'agenda' && <AgendaView events={events} onEventClick={() => {}} />}
+          {view === 'month' && <CalendarGrid onEventClick={setDetailEvent} />}
+          {view === 'week' && <WeekView events={events} onDayClick={openCreate} onEventClick={setDetailEvent} />}
+          {view === 'day' && <DayView events={events} onTimeClick={openCreate} onEventClick={setDetailEvent} />}
+          {view === 'agenda' && <AgendaView events={events} onEventClick={setDetailEvent} />}
         </motion.div>
       </AnimatePresence>
 
+      {/* Event erstellen */}
       <EventModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        initialDate={modalDate}
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        initialDate={createDate}
         onSaved={refetch}
+      />
+
+      {/* Event Detail */}
+      <EventDetailModal
+        event={detailEvent}
+        onClose={() => setDetailEvent(null)}
+        onDeleted={refetch}
+        onEdited={() => {
+          setCreateDate(new Date(detailEvent!.start_at))
+          setDetailEvent(null)
+          setCreateOpen(true)
+        }}
       />
     </div>
   )
