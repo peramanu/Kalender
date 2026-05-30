@@ -28,7 +28,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col justify-center px-5 py-12">
+    <main className="min-h-[100dvh] flex flex-col justify-center px-5 py-12">
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
       </div>

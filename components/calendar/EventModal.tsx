@@ -150,7 +150,7 @@ export function EventModal({ open, onClose, initialDate, editEvent, onSaved }: E
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="fixed bottom-0 left-0 right-0 z-50 md:relative md:inset-auto md:fixed md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-lg"
           >
-            <div className="glass rounded-t-3xl md:rounded-2xl p-6 pb-8 md:pb-6">
+            <div className="glass rounded-t-3xl md:rounded-2xl p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] md:pb-6 max-h-[90dvh] overflow-y-auto scrollbar-thin">
               <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5 md:hidden" />
 
               <div className="flex items-center justify-between mb-5">

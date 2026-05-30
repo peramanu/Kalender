@@ -2,12 +2,11 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Calendar, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 function LoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
@@ -41,8 +40,10 @@ function LoginForm() {
       return
     }
 
-    router.push('/calendar')
-    router.refresh()
+    // Full-page navigation so the freshly-set Supabase auth cookies are sent
+    // with the very first request to /calendar. router.push + refresh can race
+    // the cookie write, causing the proxy to bounce the user back to /login.
+    window.location.href = '/calendar'
   }
 
   const handleGoogleLogin = async () => {
@@ -63,7 +64,7 @@ function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col justify-center px-5 py-12">
+    <main className="min-h-[100dvh] flex flex-col justify-center px-5 py-12">
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl" />

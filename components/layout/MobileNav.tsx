@@ -10,8 +10,8 @@ const navigation = [
   { name: 'Kalender', href: '/calendar', icon: Calendar },
   { name: 'Gruppen', href: '/groups', icon: Users },
   { name: '', href: '', icon: Plus }, // FAB Platzhalter
-  { name: 'Glocke', href: '/notifications', icon: Bell },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Mitteil.', href: '/notifications', icon: Bell },
+  { name: 'Profil', href: '/settings', icon: Settings },
 ]
 
 export function MobileNav() {
@@ -30,25 +30,33 @@ export function MobileNav() {
                 return (
                   <button
                     key="fab"
+                    aria-label="Neues Event"
                     onClick={() => setModalOpen(true)}
-                    className="w-12 h-12 bg-indigo-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/40 active:scale-95 transition-transform -mt-5"
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-transform -mt-6"
+                    style={{
+                      backgroundColor: 'var(--accent)',
+                      boxShadow: '0 8px 24px rgba(var(--accent-rgb), 0.45)',
+                    }}
                   >
-                    <Plus className="w-6 h-6 text-white" />
+                    <Plus className="w-7 h-7 text-white" strokeWidth={2.5} />
                   </button>
                 )
               }
 
-              const isActive = pathname?.startsWith(item.href)
+              const isActive =
+                item.href === '/calendar'
+                  ? pathname === '/calendar' || pathname?.startsWith('/calendar')
+                  : pathname?.startsWith(item.href)
+
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex flex-col items-center gap-1 px-4 py-1 transition-colors ${
-                    isActive ? 'text-indigo-400' : 'text-white/40'
-                  }`}
+                  className="flex flex-col items-center justify-center gap-1 flex-1 h-full active:scale-90 transition-transform"
+                  style={{ color: isActive ? 'var(--accent)' : 'rgba(255,255,255,0.4)' }}
                 >
-                  <item.icon className="w-5 h-5" />
-                  <span className="text-[10px] font-medium">{item.name}</span>
+                  <item.icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="text-[10px] font-medium leading-none">{item.name}</span>
                 </Link>
               )
             })}

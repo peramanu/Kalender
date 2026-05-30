@@ -16,6 +16,9 @@ interface DayViewProps {
 export function DayView({ events, onTimeClick, onEventClick }: DayViewProps) {
   const { currentDate } = useCalendarStore()
 
+  const now = new Date()
+  const nowPercent = ((now.getHours() * 60 + now.getMinutes()) / 1440) * 100
+
   const dayEvents = events.filter(
     (e) => isSameDay(new Date(e.start_at), currentDate) && !e.all_day
   )
@@ -86,6 +89,15 @@ export function DayView({ events, onTimeClick, onEventClick }: DayViewProps) {
               <div className="flex-1 border-l border-white/10 hover:bg-white/5 transition-colors cursor-pointer" />
             </div>
           ))}
+
+          {/* Aktuelle Zeit */}
+          {isToday(currentDate) && (
+            <div className="absolute left-14 right-2 z-20 pointer-events-none" style={{ top: `${nowPercent}%` }}>
+              <div className="h-0.5 bg-red-500 relative">
+                <div className="absolute -left-1.5 -top-[3px] w-2.5 h-2.5 rounded-full bg-red-500 shadow shadow-red-500/50" />
+              </div>
+            </div>
+          )}
 
           {/* Events Overlay */}
           <div className="absolute top-0 left-14 right-0 bottom-0 pointer-events-none">

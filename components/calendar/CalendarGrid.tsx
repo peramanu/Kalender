@@ -52,7 +52,7 @@ export function CalendarGrid({ onEventClick }: CalendarGridProps) {
   return (
     <>
       <div
-        className="flex-1 glass rounded-2xl overflow-hidden flex flex-col select-none"
+        className="relative flex-1 glass rounded-2xl overflow-hidden flex flex-col select-none"
         onTouchStart={(e) => setDragStartX(e.touches[0].clientX)}
         onTouchEnd={(e) => {
           if (dragStartX === null) return

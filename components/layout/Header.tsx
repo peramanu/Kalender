@@ -17,7 +17,8 @@ export function Header() {
 
   return (
     <>
-      <header className="h-14 md:h-16 glass border-b border-white/10 flex items-center px-4 gap-3 sticky top-0 z-30">
+      <header className="pt-safe glass border-b border-white/10 sticky top-0 z-30">
+        <div className="h-14 md:h-16 flex items-center px-3 md:px-4 gap-2 md:gap-3">
         {/* Datum Navigation */}
         <div className="flex items-center gap-1">
           <button
@@ -76,6 +77,7 @@ export function Header() {
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Event</span>
           </button>
+        </div>
         </div>
       </header>
 

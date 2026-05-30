@@ -35,11 +35,41 @@
   margin: 0;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  height: 100%;
+}
+
 html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
   font-family: 'Inter', system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* App-like touch behaviour: no blue tap flash, no accidental text selection
+   on controls, momentum scrolling on iOS. */
+button,
+a,
+[role='button'],
+.no-select {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+/* ≥16px font prevents iOS Safari from auto-zooming when an input is focused.
+   !important + a class-free media query is required to beat Tailwind's
+   .text-sm / .text-xs utility classes (higher specificity than a bare
+   element selector). */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 
@@ -85,6 +115,19 @@ body {
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 2px;
+  }
+
+  /* Safe-area helpers for notched / home-indicator devices */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .h-safe-top {
+    height: env(safe-area-inset-top);
   }
 }
 

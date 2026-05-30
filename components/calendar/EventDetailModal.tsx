@@ -52,7 +52,7 @@ export function EventDetailModal({ event, onClose, onDeleted, onEdited }: EventD
           {/* Farbband oben */}
           <div className="h-1.5 w-full" style={{ backgroundColor: eventColor }} />
 
-          <div className="p-6 pb-8 md:pb-6">
+          <div className="p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] md:pb-6">
             {/* Handle mobile */}
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4 md:hidden" />
 

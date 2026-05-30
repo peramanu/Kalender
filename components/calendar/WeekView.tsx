@@ -22,6 +22,9 @@ export function WeekView({ events, onDayClick, onEventClick }: WeekViewProps) {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
   const days = eachDayOfInterval({ start: weekStart, end: endOfWeek(currentDate, { weekStartsOn: 1 }) })
 
+  const now = new Date()
+  const nowPercent = ((now.getHours() * 60 + now.getMinutes()) / 1440) * 100
+
   const getEventsForDay = (date: Date) =>
     events.filter((e) => isSameDay(new Date(e.start_at), date) && !e.all_day)
 
@@ -105,6 +108,23 @@ export function WeekView({ events, onDayClick, onEventClick }: WeekViewProps) {
               ))}
             </div>
           ))}
+
+          {/* Aktuelle Zeit */}
+          {days.map((day, dayIdx) => isToday(day) ? (
+            <div
+              key={`now-${dayIdx}`}
+              className="absolute z-20 pointer-events-none"
+              style={{
+                top: `${nowPercent}%`,
+                left: `calc(48px + ${dayIdx} * ((100% - 48px) / 7))`,
+                width: `calc((100% - 48px) / 7)`,
+              }}
+            >
+              <div className="h-0.5 bg-red-500 relative">
+                <div className="absolute -left-1 -top-[3px] w-2 h-2 rounded-full bg-red-500" />
+              </div>
+            </div>
+          ) : null)}
 
           {/* Events overlay */}
           {days.map((day, dayIdx) => (
