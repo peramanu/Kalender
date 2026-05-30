@@ -38,7 +38,6 @@ const roleLabel = (role: string) => {
 
 export default function GroupDetailPage() {
   const { groupId } = useParams<{ groupId: string }>()
-  const router = useRouter()
   const { user } = useUser()
   const [group, setGroup] = useState<Group | null>(null)
   const [members, setMembers] = useState<Member[]>([])
@@ -46,6 +45,7 @@ export default function GroupDetailPage() {
   const [inviting, setInviting] = useState(false)
   const [inviteSent, setInviteSent] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [removingId, setRemovingId] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -63,16 +63,28 @@ export default function GroupDetailPage() {
     if (!inviteEmail.trim() || !user || !group) return
     setInviting(true)
     const supabase = createClient()
-    await supabase.from('calendar_invites').insert({
+    await supabase.from('calendar_invites').upsert({
       calendar_id: group.id,
       invited_by: user.id,
       email: inviteEmail.trim(),
       role: 'member',
-    })
+    }, { onConflict: 'calendar_id,email' })
     setInviteEmail('')
     setInviteSent(true)
     setInviting(false)
     setTimeout(() => setInviteSent(false), 3000)
+  }
+
+  const handleRemoveMember = async (userId: string) => {
+    setRemovingId(userId)
+    const supabase = createClient()
+    await supabase
+      .from('calendar_members')
+      .delete()
+      .eq('calendar_id', groupId)
+      .eq('user_id', userId)
+    setMembers((prev) => prev.filter((m) => m.user_id !== userId))
+    setRemovingId(null)
   }
 
   const isOwner = group?.owner_id === user?.id
@@ -89,7 +101,6 @@ export default function GroupDetailPage() {
 
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-24 md:pb-6">
-      {/* Back */}
       <Link href="/groups" className="inline-flex items-center gap-2 text-white/60 hover:text-white text-sm px-1">
         <ArrowLeft className="w-4 h-4" /> Gruppen
       </Link>
@@ -113,7 +124,7 @@ export default function GroupDetailPage() {
         </div>
       </div>
 
-      {/* Mitglieder einladen */}
+      {/* Mitglied einladen */}
       {isOwner && (
         <div className="glass rounded-2xl p-5 space-y-3">
           <h2 className="text-white font-semibold flex items-center gap-2">
@@ -140,7 +151,7 @@ export default function GroupDetailPage() {
             </button>
           </div>
           {inviteSent && (
-            <p className="text-green-400 text-sm">✓ Einladung gesendet!</p>
+            <p className="text-green-400 text-sm">✓ Einladung gespeichert!</p>
           )}
         </div>
       )}
@@ -170,7 +181,11 @@ export default function GroupDetailPage() {
                 </div>
               </div>
               {isOwner && member.user_id !== user?.id && (
-                <button className="p-1.5 text-white/20 hover:text-red-400 transition-colors">
+                <button
+                  onClick={() => handleRemoveMember(member.user_id)}
+                  disabled={removingId === member.user_id}
+                  className="p-1.5 text-white/20 hover:text-red-400 transition-colors disabled:opacity-40"
+                >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               )}

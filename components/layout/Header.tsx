@@ -1,17 +1,19 @@
 'use client'
 
-import { Bell, Search, Sun, Moon, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { Bell, Sun, Moon, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useTheme } from '@/components/providers/ThemeProvider'
 import { useCalendarStore } from '@/store/calendarStore'
 import { format } from 'date-fns'
 import { de } from 'date-fns/locale'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { EventModal } from '@/components/calendar/EventModal'
 
 export function Header() {
   const { resolvedTheme, setTheme } = useTheme()
   const { currentDate, goToPrev, goToNext, goToToday } = useCalendarStore()
   const [modalOpen, setModalOpen] = useState(false)
+  const router = useRouter()
 
   return (
     <>
@@ -59,9 +61,11 @@ export function Header() {
           </button>
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-all">
+          <button
+            onClick={() => router.push('/notifications')}
+            className="relative p-2 rounded-xl hover:bg-white/10 text-white/50 hover:text-white transition-all"
+          >
             <Bell className="w-4 h-4" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-indigo-400 rounded-full" />
           </button>
 
           {/* Neues Event — FAB-Style Button */}

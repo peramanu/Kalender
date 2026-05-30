@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/useUser'
 import { MiniCalendar } from '@/components/calendar/MiniCalendar'
+import { useCalendarStore } from '@/store/calendarStore'
 
 const navigation = [
   { name: 'Kalender', href: '/calendar', icon: Calendar },
@@ -28,25 +29,29 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const { user } = useUser()
   const [calendars, setCalendars] = useState<CalendarItem[]>([])
-  const [hiddenCalendars, setHiddenCalendars] = useState<Set<string>>(new Set())
+  const { hiddenCalendars, toggleCalendar } = useCalendarStore()
 
   useEffect(() => {
     if (!user) return
     const supabase = createClient()
-    supabase
-      .from('calendars')
-      .select('id, name, color, type')
-      .eq('owner_id', user.id)
-      .then(({ data }) => setCalendars(data ?? []))
-  }, [user])
 
-  const toggleCalendar = (id: string) => {
-    setHiddenCalendars((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
+    Promise.all([
+      // Personal calendars owned by user
+      supabase.from('calendars').select('id, name, color, type').eq('owner_id', user.id),
+      // Group calendars user is a member of
+      supabase.from('calendar_members').select('calendars!inner(id, name, color, type)').eq('user_id', user.id),
+    ]).then(([{ data: owned }, { data: memberships }]) => {
+      const memberCals = (memberships ?? [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((m: any) => m.calendars as CalendarItem)
+        .filter(Boolean) as CalendarItem[]
+
+      const all = [...(owned ?? []), ...memberCals]
+      const seen = new Set<string>()
+      const unique = all.filter((c) => { if (seen.has(c.id)) return false; seen.add(c.id); return true })
+      setCalendars(unique)
     })
-  }
+  }, [user])
 
   const handleLogout = async () => {
     const supabase = createClient()

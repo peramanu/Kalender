@@ -11,7 +11,6 @@ interface Group {
   name: string
   description: string | null
   color: string
-  icon: string
   type: string
 }
 
@@ -23,12 +22,17 @@ export default function GroupsPage() {
   useEffect(() => {
     if (!user) return
     const supabase = createClient()
+
     supabase
-      .from('calendars')
-      .select('*')
-      .eq('type', 'group')
+      .from('calendar_members')
+      .select('calendars!inner(id, name, description, color, type)')
+      .eq('user_id', user.id)
       .then(({ data }) => {
-        setGroups(data ?? [])
+        const cals = (data ?? [])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((m: any) => m.calendars as Group)
+          .filter((c: Group) => c && c.type === 'group')
+        setGroups(cals)
         setLoading(false)
       })
   }, [user])

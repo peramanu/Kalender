@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, MapPin, Clock, Calendar, AlignLeft, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
-import { de } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/client'
+import type { CalendarEvent } from '@/hooks/useEvents'
 
 const COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
@@ -16,33 +16,46 @@ interface EventModalProps {
   open: boolean
   onClose: () => void
   initialDate?: Date
+  editEvent?: CalendarEvent
   onSaved?: () => void
 }
 
-export function EventModal({ open, onClose, initialDate, onSaved }: EventModalProps) {
+export function EventModal({ open, onClose, initialDate, editEvent, onSaved }: EventModalProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
   const [color, setColor] = useState('#6366f1')
   const [allDay, setAllDay] = useState(false)
-  const [startDate, setStartDate] = useState(
-    format(initialDate ?? new Date(), "yyyy-MM-dd'T'HH:mm")
-  )
-  const [endDate, setEndDate] = useState(
-    format(initialDate ?? new Date(), "yyyy-MM-dd'T'HH:mm").replace(/T\d{2}:\d{2}/, 'T' + String(new Date().getHours() + 1).padStart(2, '0') + ':00')
-  )
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Pre-fill for editing or reset for creating
   useEffect(() => {
-    if (initialDate) {
-      const base = format(initialDate, "yyyy-MM-dd")
+    if (!open) return
+
+    if (editEvent) {
+      setTitle(editEvent.title)
+      setDescription(editEvent.description ?? '')
+      setLocation(editEvent.location ?? '')
+      setColor(editEvent.color ?? '#6366f1')
+      setAllDay(editEvent.all_day)
+      setStartDate(format(new Date(editEvent.start_at), "yyyy-MM-dd'T'HH:mm"))
+      setEndDate(format(new Date(editEvent.end_at), "yyyy-MM-dd'T'HH:mm"))
+    } else {
+      const base = initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
       const hour = String(new Date().getHours()).padStart(2, '0')
-      const nextHour = String(new Date().getHours() + 1).padStart(2, '0')
+      const nextHour = String(Math.min(new Date().getHours() + 1, 23)).padStart(2, '0')
+      setTitle('')
+      setDescription('')
+      setLocation('')
+      setColor('#6366f1')
+      setAllDay(false)
       setStartDate(`${base}T${hour}:00`)
       setEndDate(`${base}T${nextHour}:00`)
     }
-  }, [initialDate])
+  }, [open, editEvent, initialDate])
 
   const handleSave = async () => {
     if (!title.trim()) return
@@ -51,23 +64,9 @@ export function EventModal({ open, onClose, initialDate, onSaved }: EventModalPr
 
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { setLoading(false); return }
 
-    // Persönlichen Kalender holen
-    const { data: calendar } = await supabase
-      .from('calendars')
-      .select('id')
-      .eq('owner_id', user.id)
-      .eq('type', 'personal')
-      .single()
-
-    if (!calendar) {
-      setError('Kein persönlicher Kalender gefunden.')
-      setLoading(false)
-      return
-    }
-
-    const { error: insertError } = await supabase.from('events').insert({
+    const eventData = {
       title: title.trim(),
       description: description.trim() || null,
       location: location.trim() || null,
@@ -75,29 +74,67 @@ export function EventModal({ open, onClose, initialDate, onSaved }: EventModalPr
       start_at: allDay ? `${startDate.split('T')[0]}T00:00:00+00:00` : new Date(startDate).toISOString(),
       end_at: allDay ? `${startDate.split('T')[0]}T23:59:59+00:00` : new Date(endDate).toISOString(),
       all_day: allDay,
-      calendar_id: calendar.id,
-      created_by: user.id,
-    })
-
-    if (insertError) {
-      setError('Fehler beim Speichern.')
-      setLoading(false)
-      return
     }
 
-    setTitle('')
-    setDescription('')
-    setLocation('')
+    if (editEvent) {
+      const { error: updateError } = await supabase
+        .from('events')
+        .update(eventData)
+        .eq('id', editEvent.id)
+
+      if (updateError) {
+        setError('Fehler beim Speichern.')
+        setLoading(false)
+        return
+      }
+    } else {
+      // Get or create personal calendar
+      let { data: calendar } = await supabase
+        .from('calendars')
+        .select('id')
+        .eq('owner_id', user.id)
+        .eq('type', 'personal')
+        .single()
+
+      if (!calendar) {
+        const { data: newCal } = await supabase
+          .from('calendars')
+          .insert({ name: 'Mein Kalender', color: '#6366f1', type: 'personal', owner_id: user.id })
+          .select('id')
+          .single()
+        calendar = newCal
+      }
+
+      if (!calendar) {
+        setError('Kein Kalender verfügbar.')
+        setLoading(false)
+        return
+      }
+
+      const { error: insertError } = await supabase.from('events').insert({
+        ...eventData,
+        calendar_id: calendar.id,
+        created_by: user.id,
+      })
+
+      if (insertError) {
+        setError('Fehler beim Speichern.')
+        setLoading(false)
+        return
+      }
+    }
+
     onSaved?.()
     onClose()
     setLoading(false)
   }
 
+  const isEditing = !!editEvent
+
   return (
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -106,7 +143,6 @@ export function EventModal({ open, onClose, initialDate, onSaved }: EventModalPr
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
           />
 
-          {/* Modal — Bottom Sheet auf Mobile */}
           <motion.div
             initial={{ opacity: 0, y: '100%' }}
             animate={{ opacity: 1, y: 0 }}
@@ -115,12 +151,12 @@ export function EventModal({ open, onClose, initialDate, onSaved }: EventModalPr
             className="fixed bottom-0 left-0 right-0 z-50 md:relative md:inset-auto md:fixed md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-lg"
           >
             <div className="glass rounded-t-3xl md:rounded-2xl p-6 pb-8 md:pb-6">
-              {/* Handle (mobile) */}
               <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5 md:hidden" />
 
-              {/* Header */}
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-white font-semibold text-lg">Neues Event</h2>
+                <h2 className="text-white font-semibold text-lg">
+                  {isEditing ? 'Event bearbeiten' : 'Neues Event'}
+                </h2>
                 <button
                   onClick={onClose}
                   className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white/60 hover:text-white"
@@ -129,13 +165,11 @@ export function EventModal({ open, onClose, initialDate, onSaved }: EventModalPr
                 </button>
               </div>
 
-              {/* Fehler */}
               {error && (
                 <p className="text-red-400 text-sm mb-4 bg-red-500/10 rounded-xl px-3 py-2">{error}</p>
               )}
 
               <div className="space-y-4">
-                {/* Titel */}
                 <div>
                   <div className="flex items-center gap-2 mb-1.5">
                     <Calendar className="w-4 h-4 text-white/40" />
@@ -151,7 +185,6 @@ export function EventModal({ open, onClose, initialDate, onSaved }: EventModalPr
                   />
                 </div>
 
-                {/* Ganztägig Toggle */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-white/40" />
@@ -165,7 +198,6 @@ export function EventModal({ open, onClose, initialDate, onSaved }: EventModalPr
                   </button>
                 </div>
 
-                {/* Datum/Uhrzeit */}
                 {!allDay ? (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -199,7 +231,6 @@ export function EventModal({ open, onClose, initialDate, onSaved }: EventModalPr
                   </div>
                 )}
 
-                {/* Ort */}
                 <div>
                   <div className="flex items-center gap-2 mb-1.5">
                     <MapPin className="w-4 h-4 text-white/40" />
@@ -214,7 +245,6 @@ export function EventModal({ open, onClose, initialDate, onSaved }: EventModalPr
                   />
                 </div>
 
-                {/* Notiz */}
                 <div>
                   <div className="flex items-center gap-2 mb-1.5">
                     <AlignLeft className="w-4 h-4 text-white/40" />
@@ -229,7 +259,6 @@ export function EventModal({ open, onClose, initialDate, onSaved }: EventModalPr
                   />
                 </div>
 
-                {/* Farbe */}
                 <div>
                   <label className="text-white/60 text-sm mb-2 block">Farbe</label>
                   <div className="flex gap-2 flex-wrap">
@@ -244,14 +273,13 @@ export function EventModal({ open, onClose, initialDate, onSaved }: EventModalPr
                   </div>
                 </div>
 
-                {/* Speichern */}
                 <button
                   onClick={handleSave}
                   disabled={!title.trim() || loading}
                   className="w-full bg-indigo-500 hover:bg-indigo-400 active:bg-indigo-600 disabled:opacity-40 text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  {loading ? 'Speichern...' : 'Event erstellen'}
+                  {loading ? 'Speichern...' : isEditing ? 'Änderungen speichern' : 'Event erstellen'}
                 </button>
               </div>
             </div>

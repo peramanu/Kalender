@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { startOfMonth, endOfMonth } from 'date-fns'
+import { useCalendarStore } from '@/store/calendarStore'
 
 export interface CalendarEvent {
   id: string
@@ -22,6 +23,7 @@ export interface CalendarEvent {
 export function useEvents(currentDate: Date) {
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)
+  const hiddenCalendars = useCalendarStore((state) => state.hiddenCalendars)
 
   const fetchEvents = useCallback(async () => {
     const supabase = createClient()
@@ -45,7 +47,6 @@ export function useEvents(currentDate: Date) {
   useEffect(() => {
     fetchEvents()
 
-    // Realtime subscription
     const supabase = createClient()
     const channel = supabase
       .channel('events-changes')
@@ -55,5 +56,9 @@ export function useEvents(currentDate: Date) {
     return () => { supabase.removeChannel(channel) }
   }, [fetchEvents])
 
-  return { events, loading, refetch: fetchEvents }
+  const visibleEvents = hiddenCalendars.size > 0
+    ? events.filter((e) => !hiddenCalendars.has(e.calendar_id))
+    : events
+
+  return { events: visibleEvents, loading, refetch: fetchEvents }
 }

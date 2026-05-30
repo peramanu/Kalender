@@ -17,11 +17,18 @@ export default function CalendarPage() {
   const { events, refetch } = useEvents(currentDate)
   const [createOpen, setCreateOpen] = useState(false)
   const [createDate, setCreateDate] = useState<Date>(new Date())
+  const [editEvent, setEditEvent] = useState<CalendarEvent | null>(null)
   const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null)
 
   const openCreate = (date: Date) => {
+    setEditEvent(null)
     setCreateDate(date)
     setCreateOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setCreateOpen(false)
+    setEditEvent(null)
   }
 
   return (
@@ -44,21 +51,20 @@ export default function CalendarPage() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Event erstellen */}
       <EventModal
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={handleCloseModal}
         initialDate={createDate}
-        onSaved={refetch}
+        editEvent={editEvent ?? undefined}
+        onSaved={() => { refetch(); setEditEvent(null) }}
       />
 
-      {/* Event Detail */}
       <EventDetailModal
         event={detailEvent}
         onClose={() => setDetailEvent(null)}
         onDeleted={refetch}
         onEdited={() => {
-          setCreateDate(new Date(detailEvent!.start_at))
+          setEditEvent(detailEvent)
           setDetailEvent(null)
           setCreateOpen(true)
         }}
