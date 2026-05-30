@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
@@ -12,37 +12,44 @@ export async function proxy(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
           )
         },
       },
     }
   )
 
+  // Refreshes the session — do not remove
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isAuthPage = request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/register') ||
-    request.nextUrl.pathname.startsWith('/forgot-password') ||
-    request.nextUrl.pathname.startsWith('/auth')
+  const { pathname } = request.nextUrl
 
-  const isAppPage = request.nextUrl.pathname.startsWith('/calendar') ||
-    request.nextUrl.pathname.startsWith('/groups') ||
-    request.nextUrl.pathname.startsWith('/settings') ||
-    request.nextUrl.pathname.startsWith('/notifications')
+  const isAppRoute =
+    pathname.startsWith('/calendar') ||
+    pathname.startsWith('/groups') ||
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/notifications')
 
-  // Nicht eingeloggt → auf Login umleiten
-  if (!user && isAppPage) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  // Note: /auth/* is excluded so the OAuth callback always works
+  const isAuthRoute =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/forgot-password')
+
+  if (!user && isAppRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 
-  // Eingeloggt → nicht mehr auf Auth-Seiten
-  if (user && isAuthPage) {
-    return NextResponse.redirect(new URL('/calendar', request.url))
+  if (user && isAuthRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/calendar'
+    return NextResponse.redirect(url)
   }
 
   return supabaseResponse
